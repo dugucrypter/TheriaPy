@@ -64,7 +64,7 @@ class Theriapy:
         print("Step " + str(self.step) + " :", compo_str + " P " + str(pressure) + " T " + str(temperature))
 
         compo_str = "1  " + compo_str
-        therin_path = os.path.join(self.working_dir, "THERIN")  # change name theom and working_dir
+        therin_path = os.path.join(self.working_dir, "THERIN")
         try:
             with open(therin_path, 'r') as file:
                 lines = file.readlines()
