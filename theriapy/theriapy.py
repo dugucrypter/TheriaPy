@@ -38,6 +38,16 @@ def get_output(out_queue):
 
 
 class Theriapy:
+    """A class that opens Theriak as a subprocess, and parses the computed data.
+
+    Attributes:
+        therdom_dir : The directory path of the install Theriak-Domino programs
+        working_dir : The working directory path
+        db : The database used for calculations
+        verbose : A boolean; if True, more details of the process are printed
+        show_output : A boolean; if True, the output of the theriak.exe subprocess is printed
+        wait_time : A float, the time-span waited before looking for the result of the calculation, in econds. Can be increased if calculations are tie-consuming
+    """
     def __init__(self, therdom_dir, working_dir, db="JUN92d.bs", verbose=False, show_output=False, wait_time=0.2):
         os.environ['PATH'] = ''.join(
             [str(therdom_dir), ";", os.getenv('PATH'), ";", str(working_dir)
