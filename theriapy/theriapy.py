@@ -222,28 +222,43 @@ class Theriapy:
 
     def parse_h2o_phases(self, file):
 
-        data_h2o_phases = [["Solid phase", "N", "H2O [pfu]", "H2O [mol]", "H2O [g]",
+        data_h2o_phases = [["Phase", "N", "H2O [pfu]", "H2O [mol]", "H2O [g]",
                             "wt% of phase", "wt% of solids", "wt% of H2O.solid", ], ]
-        checked = False
+
+        solids_checked = False
+        gases_fluids_checked = False
+
         self.jump_lines(file, 4)
 
-        while not checked:
+        while not solids_checked:
             line = file.readline()
             if 'exit THERIAK' in line:
-                checked = True
+                solids_checked = True
             else:
                 # check lines
                 match = names_in_line(line)
                 if match and match.group(1) not in ("----------", "--------"):
                     if match.group(1) == "total":
                         lnbs = list_numbers_in_line(line)
-                        phase_row = ["Total", '', '', lnbs[0], lnbs[1], '', lnbs[2], '']
+                        phase_row = ["Total (solids)", '', '', lnbs[0], lnbs[1], '', lnbs[2], '']
                         data_h2o_phases.append(phase_row)
-                        checked = True
+                        solids_checked = True
                     else:
                         lnbs = list_numbers_in_line(line)
                         phase_row = [match.group(1), *lnbs]
                         data_h2o_phases.append(phase_row)
+
+        self.jump_lines(file, 4)
+
+        while not gases_fluids_checked:
+            line = file.readline()
+            match = names_in_line(line)
+            if match and match.group(1) not in ("----------",):
+                lnbs = list_numbers_in_line(line)
+                phase_row = [match.group(1), *lnbs, '', '']
+                data_h2o_phases.append(phase_row)
+            else:
+                gases_fluids_checked = True
 
         return data_h2o_phases
 
