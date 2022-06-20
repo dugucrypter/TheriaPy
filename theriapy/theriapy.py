@@ -67,10 +67,13 @@ class Theriapy:
         print("TheriaPy initialized.")
         print("Working directory", working_dir, "\nTheriak-Domino directory :", therdom_dir, "\nDatabase :", db)
 
-    def set_therin(self, compo, temperature, pressure):
+    def set_therin(self, compo, temperature, pressure, ignore_stepping=False):
 
         compo_str = ""
-        comments = "     *Edited with TheriaPy " + str(self.start_time) + " step " + str(self.step)
+        if ignore_stepping :
+            comments = "     *Edited with TheriaPy " + str(self.start_time) + " step " + str(self.step) + " (ignored)"
+        else :
+            comments = "     *Edited with TheriaPy " + str(self.start_time) + " step " + str(self.step)
         for key, val in compo.items():
             compo_str = compo_str + key + "(" + str(val) + ")"
         print("Step " + str(self.step) + " :", compo_str + " P " + str(pressure) + " T " + str(temperature))
@@ -98,16 +101,17 @@ class Theriapy:
             msg = "Could not opent the file " + therin_path + "."
             print(msg)
 
-    def compute_step(self, comp, temperature, pressure):
-        self.set_therin(comp, temperature, pressure)
+    def compute_step(self, comp, temperature, pressure, ignore_stepping=False):
+        self.set_therin(comp, temperature, pressure, ignore_stepping)
         self.reset_output_buffer()
         self.run_subprocess()
         parsed = self.parse_out()
-        shutil.copyfile(os.path.join(self.working_dir, 'OUT'),
-                        os.path.join(self.save_dir, 'OUT_' + 'step' + '_' + str(self.step)))
-        if self.verbose:
-            print("Saved in ", os.path.join(self.save_dir, 'OUT_' + 'step' + '_' + str(self.step)))
-        self.step += 1
+        if not ignore_stepping :
+            shutil.copyfile(os.path.join(self.working_dir, 'OUT'),
+                            os.path.join(self.save_dir, 'OUT_' + 'step' + '_' + str(self.step)))
+            if self.verbose:
+                print("Saved in ", os.path.join(self.save_dir, 'OUT_' + 'step' + '_' + str(self.step)))
+            self.step += 1
         return parsed
 
     def write(self, content):
