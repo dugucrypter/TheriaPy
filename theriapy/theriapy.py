@@ -48,12 +48,14 @@ class Theriapy:
         show_output : A boolean; if True, the output of the theriak.exe subprocess is printed
         wait_time : A float, the time-span waited before looking for the result of the calculation, in econds. Can be increased if calculations are tie-consuming
     """
+
     def __init__(self, therdom_dir, working_dir, db="JUN92d.bs", verbose=False, show_output=False, wait_time=0.2):
         os.environ['PATH'] = ''.join(
             [str(therdom_dir), ";", os.getenv('PATH'), ";", str(working_dir)
              ])
         self.verbose = verbose
-        self.output = show_output
+        self.show_output = show_output
+        self.output_buffer = []
         self.working_dir = working_dir
         self.db = db
         self.wait_time = wait_time
@@ -98,6 +100,7 @@ class Theriapy:
 
     def compute_step(self, comp, temperature, pressure):
         self.set_therin(comp, temperature, pressure)
+        self.reset_output_buffer()
         self.run_subprocess()
         parsed = self.parse_out()
         shutil.copyfile(os.path.join(self.working_dir, 'OUT'),
@@ -111,9 +114,15 @@ class Theriapy:
         self.p.stdin.write(str(content) + "\n")
         self.p.stdin.flush()
 
-    def show_output(self):
+    def read_output(self):
         output = get_output(self.out_queue)
-        print(bcolors.OKBLUE, output, bcolors.CBLACK, )
+        self.output_buffer.append(output)
+
+    def print_output(self, output_color=bcolors.OKBLUE):
+        print(output_color, self.output_buffer[-1], bcolors.CBLACK)
+
+    def reset_output_buffer(self):
+        self.output_buffer = []
 
     def run_subprocess(self):
         self.p = subprocess.Popen(['theriak'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -125,19 +134,26 @@ class Theriapy:
         out_thread.start()
 
         # Db select
-        if self.output:
-            self.show_output()
+        self.read_output()
+        if self.show_output:
+            self.print_output()
         self.write(self.db)
         time.sleep(self.wait_time)
+        self.read_output()
+        if 'iostat' in self.output_buffer[-1]:
+            self.print_output(output_color=bcolors.FAIL)
+            raise Exception('Theriak execution did not close as expected.'
+                            ' Check database name and database content.')
 
         # Type of calculation
-        if self.output:
-            self.show_output()
+        if self.show_output:
+            self.print_output()
         self.write('no')
         time.sleep(self.wait_time)
 
-        if self.output:
-            self.show_output()
+        self.read_output()
+        if self.show_output:
+            self.print_output()
 
         # Close process
         self.p.kill()
@@ -167,7 +183,13 @@ class Theriapy:
                     if reg_match.elements_in_phases:
                         data_compo = self.parse_compo(file)
 
+                    prev_line = line
                     line = file.readline()
+
+                if prev_line and not 'CPU time' in prev_line:
+                    self.print_output(output_color=bcolors.FAIL)
+                    raise Exception(
+                        'Output not correctly parsed. Check the output for errors or increase the execution time.')
 
         except IOError:
             msg = "Could not opent the file " + out_path + "."
@@ -217,7 +239,6 @@ class Theriapy:
                     lnbs = list_numbers_in_line(line)
                     phase_row = [match.group(1), lnbs[0], lnbs[1], lnbs[2], '', lnbs[3], lnbs[4], '', lnbs[5]]
                     data_vol_d.append(phase_row)
-
         return data_vol_d
 
     def parse_h2o_phases(self, file):
@@ -254,7 +275,6 @@ class Theriapy:
                         lnbs = list_numbers_in_line(line)
                         phase_row = [match.group(1), *lnbs]
                         data_h2o_phases.append(phase_row)
-
 
         while not gases_fluids_checked:
             line = file.readline()
