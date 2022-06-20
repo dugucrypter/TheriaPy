@@ -65,7 +65,7 @@ class Theriapy:
         os.mkdir(self.save_dir)
         self.step = 1
         print("TheriaPy initialized.")
-        print("Working directory", working_dir, "\nTheriak-Domino directory :", therdom_dir, "\nDatabase :", db)
+        print("Working directory :", working_dir, "\nTheriak-Domino directory :", therdom_dir, "\nDatabase :", db)
 
     def set_therin(self, compo, temperature, pressure, ignore_stepping=False):
 
