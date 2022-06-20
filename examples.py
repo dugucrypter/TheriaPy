@@ -22,7 +22,7 @@ compo = {
 # Initialization with the directory of Theriak-Domino programs and the working directory (which contains THERIN and databases).
 thepy = Theriapy(therdom_dir='path\to\Theriak-Domino\install\directory',
                  working_dir="path\to\working\directory",
-                 db="Jun92d.bs", wait_time=1, verbose=True, show_output=False)
+                 db="Jun92d.bs", execution_time=1, verbose=True, show_output=False)
 
 # Number of steps
 step_number = 20

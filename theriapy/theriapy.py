@@ -46,10 +46,10 @@ class Theriapy:
         db : The database used for calculations
         verbose : A boolean; if True, more details of the process are printed
         show_output : A boolean; if True, the output of the theriak.exe subprocess is printed
-        wait_time : A float, the time-span waited before looking for the result of the calculation, in econds. Can be increased if calculations are tie-consuming
+        execution_time : A float, the time-span waited before looking for the result of the calculation, in econds. Can be increased if calculations are tie-consuming
     """
 
-    def __init__(self, therdom_dir, working_dir, db="JUN92d.bs", verbose=False, show_output=False, wait_time=0.2):
+    def __init__(self, therdom_dir, working_dir, db="JUN92d.bs", verbose=False, show_output=False, execution_time=0.2):
         os.environ['PATH'] = ''.join(
             [str(therdom_dir), ";", os.getenv('PATH'), ";", str(working_dir)
              ])
@@ -58,14 +58,14 @@ class Theriapy:
         self.output_buffer = []
         self.working_dir = working_dir
         self.db = db
-        self.wait_time = wait_time
+        self.execution_time = execution_time
         now = datetime.now()
         self.start_time = now.strftime("%Y_%m_%d_%H_%M_%S")
         self.save_dir = os.path.join(self.working_dir, self.start_time)
         os.mkdir(self.save_dir)
         self.step = 1
         print("TheriaPy initialized.")
-        print("Working directory", working_dir, " --- Theriak-Domino directory :", therdom_dir, " --- Database :", db)
+        print("Working directory", working_dir, "\nTheriak-Domino directory :", therdom_dir, "\nDatabase :", db)
 
     def set_therin(self, compo, temperature, pressure):
 
@@ -138,7 +138,7 @@ class Theriapy:
         if self.show_output:
             self.print_output()
         self.write(self.db)
-        time.sleep(self.wait_time)
+        time.sleep(self.execution_time)
         self.read_output()
         if 'iostat' in self.output_buffer[-1]:
             self.print_output(output_color=bcolors.FAIL)
@@ -149,7 +149,7 @@ class Theriapy:
         if self.show_output:
             self.print_output()
         self.write('no')
-        time.sleep(self.wait_time)
+        time.sleep(self.execution_time)
 
         self.read_output()
         if self.show_output:
@@ -192,7 +192,7 @@ class Theriapy:
                         'Output not correctly parsed. Check the output for errors or increase the execution time.')
 
         except IOError:
-            msg = "Could not opent the file " + out_path + "."
+            msg = "Could not open the file " + out_path + "."
             print(msg)
 
         return data_vol_d, data_h2o_compo, data_compo
@@ -251,9 +251,9 @@ class Theriapy:
 
         self.jump_lines(file, 2)
         line = file.readline()
-        if "solid phases" in line :
+        if "solid phases" in line:
             solids_checked = False
-        elif "gases and fluids" in line :
+        elif "gases and fluids" in line:
             solids_checked = True
             self.jump_lines(file, 1)
 
