@@ -228,7 +228,13 @@ class Theriapy:
         solids_checked = False
         gases_fluids_checked = False
 
-        self.jump_lines(file, 4)
+        self.jump_lines(file, 2)
+        line = file.readline()
+        if "solid phases" in line :
+            solids_checked = False
+        elif "gases and fluids" in line :
+            solids_checked = True
+            self.jump_lines(file, 1)
 
         while not solids_checked:
             line = file.readline()
@@ -243,12 +249,12 @@ class Theriapy:
                         phase_row = ["Total (solids)", '', '', lnbs[0], lnbs[1], '', lnbs[2], '']
                         data_h2o_phases.append(phase_row)
                         solids_checked = True
+                        self.jump_lines(file, 4)
                     else:
                         lnbs = list_numbers_in_line(line)
                         phase_row = [match.group(1), *lnbs]
                         data_h2o_phases.append(phase_row)
 
-        self.jump_lines(file, 4)
 
         while not gases_fluids_checked:
             line = file.readline()
