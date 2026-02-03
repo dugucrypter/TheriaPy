@@ -1,109 +1,66 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+from theriapy.containers import TheriakContainer
+from theriapy.batch_plot import batch_plot_stacked_volumes
 
-from theriapy.theriapy import Theriapy
+# Tested with Theriak-Domino v2025.06.05
 
-# Tested with Theriak-Domino v11.03.2020
+# Bulk compositions
+bulk0 = "SI(50.36)AL(30.54)FE(6.23)MG(2.46)CA(1.07)NA(4.62)K(4.73)O(?)H(2)"  # Metapelite TN205, De Capitani and Petrakakis 2010
+bulk1 = "SI(65.44)AL(15.99)FE(4.97)MG(2.17)CA(4.25)NA(4.09)K(2.24)TI(0.78)O(?)H(6)"  # Random dacite
+bulk2 = "SI(49.20)AL(16.70)FE(10.30)MG(5.40)CA(9.80)NA(3.10)K(0.70)TI(1.60)O(?)H(5)"  # Random basalt
 
-# Bulk composition, TN205, De Capitani and Petrakakis 2010
-compo = {
-    "SI": 50.36,
-    "AL": 30.54,
-    "FE": 6.23,
-    "MG": 2.46,
-    "CA": 1.07,
-    "NA": 4.62,
-    "K": 4.73,
-    "O": 160.965 + 30,  # +30 (O) for 60 (H)
-    "H": 60
+# The database and theriak.ini files must be in the same folder as this script.
+# Initialization (via pytheriak) requires:
+# - the directory containing the Theriak-Domino executables
+# - the database filename
+# - the Theriak-Domino version
+ther = TheriakContainer(programs_dir='path\to\Theriak-Domino\install\directory',
+                        database='tcdb55c2d',
+                        theriak_version='v2025.06.05'
+                        )
+
+# Number of steps along the P–T path
+step_number = 15
+
+# Pressure range: 4500–12000 bar
+temps = np.linspace(520, 850, num=step_number).astype(int)
+
+# Pressure graduating between 4500 and 8000 bars
+press = np.linspace(4500, 12000, num=step_number).astype(int)
+
+members_cfg = {
+    "phen": ["PHNG_mu", "PHNG_pa", ],
+    "bio": ["BIO_ann2", "BIO_obi", "BIO_east"],
+    "chl": ["CHLR_daph", "CHLR_clin"],
+    "opx": ["OPX_fm", "OPX_fs"],
+    "omph": ["OMPH_di", "OMPH_jd", "OMPH_hed", "OMPH_om"],
+    "pg": ["FSP_anc1", "FSP_abh"]
 }
 
-# Initialization with the directory of Theriak-Domino programs and the working directory (which contains THERIN and databases).
-thepy = Theriapy(therdom_dir='path\to\Theriak-Domino\install\directory',
-                 working_dir="path\to\working\directory",
-                 db="Jun92d.bs", execution_time=1, verbose=True, show_output=False)
+# Batch plot of phase volumes for multiple bulk compositions along the defined P–T path
+batch_plot_stacked_volumes(ther,
+                           bulks=[bulk0, bulk1, bulk2],
+                           bulks_labels=["TN205", "Dacite", "Basalt"],
+                           p_path=press, t_path=temps,
+                           members_set=members_cfg,
+                           normalize=True,
+                           move_end_lists=[["pg", "quartz"]],
+                           move_front_lists=[["LIQtc_h2oL"]]
+                           )
 
-# Number of steps
-step_number = 20
+# Compute the P–T path for bulk1 and extract the 95 % of the LIQtc solution composition at each step.
+# Command added: removes 95% of the LIQtc component at every step.
+states = ther.compute_ruled_pt_path(pressures=press,
+                                    temps=temps,
+                                    bulk=bulk1,
+                                    command="remove_sol LIQtc_ 95",
+                                    is_fluid=True) # if the phase to add/remove is a fluid
 
-# Temperature graduating between 520 and 620 °C
-temps = np.linspace(520, 620, num=step_number).astype(int)
-
-# Pressure graduating between 4500 and 17000 bars
-press = np.linspace(4500, 17000, num=step_number).astype(int)
-
-# --- Some configs for matplotlib plotting
-# --- A dictionary to store volumes data for graphic plotting
-res_vol = {}
-
-# --- The variable containing volume in the return data
-var_volume = "volume[ccm]"
-
-# --- Phases to ignore as volume
-to_ignore = ["Total", "STEAM", "water", "H", "O", "HYDROGEN"]
-
-
-# Calculation loop for each step, with different T and P values
-for i in range(step_number):
-    # Return tables of volumes and densities; H2O in stable phases; elements in stable phases
-    data_vol_d, data_h2o_compo, data_compo = thepy.compute_step(compo, temps[i], press[i])
-
-    # From here, bulk composition can be modified for the next iteration.
-    # This modification can be done according to the existing phases and
-    # their composition, that are available from the variables data_vol_d,
-    # data_h2o_compo, data_compo
-
-    # --- Here, we organize volumes data for matplotlib plotting
-
-    # --- Building a dataFrame
-    df_vol = pd.DataFrame(data_vol_d)
-    df_vol.columns = df_vol.iloc[0]
-    df_vol = df_vol.loc[1:, ["Phase", var_volume]]
-
-    for ind in df_vol.index:
-        phase, val = df_vol['Phase'][ind], df_vol[var_volume][ind]
-        if phase in res_vol.keys():
-            if val != 0:
-                res_vol[phase].append(val)
-            else:
-                res_vol[phase].append(0)
-        elif phase not in to_ignore:
-            if val != 0:
-                res_vol[phase] = [0] * i
-                res_vol[phase].append(val)
-            else:
-                res_vol[phase] = [0] * (i + 1)
-print("End of the loop.")
-
-
-# --- Complete missing values in res_vol dataFrame
-for key, val in res_vol.items():
-    if len(val) < step_number:
-        rest = [0] * (step_number - len(val))
-        val.extend(rest)
-        res_vol[key] = val
-
-# --- Normalize volumes to 100
-NORM = True
-if NORM:
-    for i in range(step_number):
-        total = sum([res_vol[key][i] for key in res_vol.keys()])
-        for key in res_vol.keys():
-            res_vol[key][i] = 100 * res_vol[key][i] / total
-
-# --- Plotting
-fig, ax = plt.subplots()
-lx = temps
-vals = []
-labels = []
-
-for key, val in res_vol.items():
-    vals.append(val)
-    labels.append(key)
-ax.stackplot(lx, *vals, labels=labels)
-ax.set_xlabel("Temperatures")
-ax.set_ylabel("Vol (%)")
-fig.legend()
+# Plot the element budgets of the LIQtc_h2oL solution along the path (vs temperature)
+states.set_members(members_cfg)
+states.plot_path_phase_elts("LIQtc_h2oL",
+                            valx=temps,
+                            with_fluids=True) # if the phase to show is a fluid
 
 plt.show()

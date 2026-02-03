@@ -248,7 +248,7 @@ class Theriapy:
     def parse_h2o_phases(self, file):
 
         data_h2o_phases = [["Phase", "N", "H2O [pfu]", "H2O [mol]", "H2O [g]",
-                            "wt% of phase", "wt% of solids", "wt% of H2O.solid", ], ]
+                            "wt% of fluid", "wt% of solids", "wt% of H2O.solid", ], ]
 
         solids_checked = False
         gases_fluids_checked = False
