@@ -7,5 +7,4 @@ TheriaPy is a Python tool for computing and visualizing equilibrium assemblages 
 The current version is built on the pytheriak library  (https://github.com/Theriak-Domino/pytheriak).
 ### Author
 
-W.M.-E. Bonzi, 2022-2025.
-
+W.M.-E. Bonzi, 2022-2026.
